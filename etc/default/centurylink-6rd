@@ -1,0 +1,2 @@
+LAN_IFACE="ens18,ens21,ens22"
+HEADER_FILE=/etc/radvd.conf.header

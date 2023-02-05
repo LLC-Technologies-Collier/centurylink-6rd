@@ -1,0 +1,16 @@
+# vlan 600
+interface ens20
+{
+	AdvSendAdvert on;
+	MinRtrAdvInterval 3;
+	MaxRtrAdvInterval 10;
+   	AdvLinkMTU 1412;
+	prefix 2607:ff08:f5:1337::/64
+	{
+		AdvOnLink on
+		AdvAutonomous on;
+		AdvRouterAddr on;
+     		AdvValidLifetime 86400;
+     		AdvPreferredLifetime 86400;
+	}	
+};

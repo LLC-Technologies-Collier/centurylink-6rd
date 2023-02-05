@@ -1,0 +1,77 @@
+#!/bin/bash
+#
+# Copyright 2023 Collier Technologies LLC
+# https://wp.c9h.org/cj/
+#
+
+# # These variables are for the use of the scripts run by run-parts
+# PPP_IFACE="$1"
+# PPP_TTY="$2"
+# PPP_SPEED="$3"
+# PPP_LOCAL="$4"
+# PPP_REMOTE="$5"
+# PPP_IPPARAM="$6"
+
+${PPP_IFACE:="ppp0"}
+if [[ -z ${PPP_LOCAL} ]]; then
+    PPP_LOCAL=$(curl -s https://icanhazip.com/)
+fi
+
+6rd_prefix="2602::/24"
+
+printf "%x%x:%x%x\n" $(echo $PPP_LOCAL | tr . ' ')
+
+# This configuration option came from CenturyLink:
+# https://www.centurylink.com/home/help/internet/modems-and-routers/advanced-setup/enable-ipv6.html
+border_router=205.171.2.64
+
+TUNIFACE=6rdif
+
+ip tunnel del ${TUNIFACE} 2>/dev/null
+ip -l 5 -6 addr flush scope global dev ${IFACE}
+
+ip tunnel add ${TUNIFACE} mode sit local ${PPP_LOCAL} remote ${border_router}
+ip tunnel 6rd dev ${TUNIFACE} 6rd-prefix "${ipv6_network}0/64" 6rd-relay_prefix ${border_router}/32
+ip -6 route add default dev ${TUNIFACE}
+
+rm /etc/radvd.conf
+i=0
+DEFAULT_FILE="/etc/default/centurylink-6rd"
+if [[ -f ${DEFAULT_FILE} ]]; then
+    source ${DEFAULT_FILE}
+    if [[ -f ${HEADER_FILE} ]]; then
+	cp ${HEADER_FILE} /etc/radvd.conf
+    fi
+else
+    LAN_IFACE="setThis"
+fi
+   
+for IFACE in $( echo ${LAN_IFACE} | tr , ' ' ) ; do
+
+    ipv6_network=$(printf "2602:%02x:%02x%02x:%02x0${i}::" $(echo ${PPP_LOCAL} | tr . ' '))
+
+    ip addr add ${ipv6_network}1/64 dev ${TUNIFACE}
+    ip link set up dev ${TUNIFACE}
+
+    ip -6 route replace "${ipv6_network}/64" dev ${IFACE} metric 1
+
+    echo "
+interface ${IFACE} {
+   AdvSendAdvert on;
+   MinRtrAdvInterval 3;
+   MaxRtrAdvInterval 10;
+   AdvLinkMTU 1280;
+   prefix ${ipv6_network}/64 {
+     AdvOnLink on;
+     AdvAutonomous on;
+     AdvRouterAddr on;
+     AdvValidLifetime 86400;
+     AdvPreferredLifetime 86400;
+   };
+};
+" >> /etc/radvd.conf
+
+    let "i=i+1"
+done
+
+sudo systemctl restart radvd
