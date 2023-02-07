@@ -12,6 +12,8 @@
 # PPP_REMOTE="$5"
 # PPP_IPPARAM="$6"
 
+set -x
+
 DEFAULT_FILE="/etc/default/centurylink-6rd"
 if [[ -f ${DEFAULT_FILE} ]]; then
     source ${DEFAULT_FILE}
@@ -28,7 +30,10 @@ for IFACE in $( echo ${LAN_IFACE} | tr , ' ' ) ; do
     ipv6_network=$(printf "2602:%02x:%02x%02x:%02x0${i}::" $(echo ${PPP_LOCAL} | tr . ' '))
     ip -6 addr del ${ipv6_network}1/64 dev ${TUNIFACE}
     ip -6 route del "${ipv6_network}/64" dev ${IFACE}
+    ip -6 route del 2602:61:7e03:3502::/64 dev ens21
     ip -6 addr flush dev $IFACE to 2602::/24
 done
 
 ip link del ${TUNIFACE}
+
+set +x

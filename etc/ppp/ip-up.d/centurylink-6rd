@@ -11,13 +11,14 @@
 # PPP_LOCAL="$4"
 # PPP_REMOTE="$5"
 # PPP_IPPARAM="$6"
+set -x
 
-${PPP_IFACE:="ppp0"}
+PPP_IFACE=${PPP_IFACE:="ppp0"}
 if [[ -z ${PPP_LOCAL} ]]; then
     PPP_LOCAL=$(curl -s https://icanhazip.com/)
 fi
 
-6rd_prefix="2602::/24"
+date +"%FT%T"
 
 #printf "%x%x:%x%x\n" $(echo $PPP_LOCAL | tr . ' ')
 
@@ -30,7 +31,7 @@ TUNIFACE=6rdif
 first_ipv6_network=$(printf "2602:%02x:%02x%02x:%02x00::" $(echo ${PPP_LOCAL} | tr . ' '))
 
 ip tunnel del ${TUNIFACE} 2>/dev/null
-ip -l 5 -6 addr flush scope global dev ${IFACE}
+ip -l 5 -6 addr flush scope global dev ${TUNIFACE}
 
 ip tunnel add ${TUNIFACE} mode sit local ${PPP_LOCAL} remote ${border_router}
 ip tunnel 6rd dev ${TUNIFACE} 6rd-prefix "${first_ipv6_network}0/64" 6rd-relay_prefix ${border_router}/32
@@ -54,6 +55,7 @@ fi
 for IFACE in $( echo ${LAN_IFACE} | tr , ' ' ) ; do
 
     ipv6_network=$(printf "2602:%02x:%02x%02x:%02x0${i}::" $(echo ${PPP_LOCAL} | tr . ' '))
+    ip -l 5 -6 addr flush scope global dev ${IFACE}
 
     ip addr add ${ipv6_network}1/64 dev ${TUNIFACE}
     ip -6 route replace "${ipv6_network}/64" dev ${IFACE} metric 1
@@ -78,3 +80,4 @@ interface ${IFACE} {
 done
 
 systemctl restart radvd
+set +x
