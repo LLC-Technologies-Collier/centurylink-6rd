@@ -5,29 +5,12 @@ interface ens20
 	MinRtrAdvInterval 3;
 	MaxRtrAdvInterval 10;
    	AdvLinkMTU 1412;
-	prefix 2607:ff08:f5:beef::/64
+	prefix 2607:ff08:f5:1337::/64
 	{
-		AdvOnLink on
+		AdvOnLink on;
 		AdvAutonomous on;
 		AdvRouterAddr on;
      		AdvValidLifetime 86400;
      		AdvPreferredLifetime 86400;
-	}	
-};
-
-# vlan 601
-interface ens24
-{
-	AdvSendAdvert on;
-	MinRtrAdvInterval 3;
-	MaxRtrAdvInterval 10;
-   	AdvLinkMTU 1412;
-	prefix 2602:fc6d:f5:beef::/64
-	{
-		AdvOnLink on
-		AdvAutonomous on;
-		AdvRouterAddr on;
-     		AdvValidLifetime 86400;
-     		AdvPreferredLifetime 86400;
-	}	
+	};
 };
