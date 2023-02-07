@@ -25,15 +25,22 @@ else
 fi
 
 TUNIFACE=6rdif
+first_ipv6_network=$(printf "2602:%02x:%02x%02x:%02x00::" $(echo ${PPP_LOCAL} | tr . ' '))
 
+i=1
 for IFACE in $( echo ${LAN_IFACE} | tr , ' ' ) ; do
     ipv6_network=$(printf "2602:%02x:%02x%02x:%02x0${i}::" $(echo ${PPP_LOCAL} | tr . ' '))
     ip -6 addr del ${ipv6_network}1/64 dev ${TUNIFACE}
     ip -6 route del "${ipv6_network}/64" dev ${IFACE}
-    ip -6 route del 2602:61:7e03:3502::/64 dev ens21
-    ip -6 addr flush dev $IFACE to 2602::/24
+    ip -6 addr flush dev $IFACE to 2602:61::/30
+    let "i=i+1"
 done
 
+ip addr del ${first_ipv6_network}1/64 dev ${TUNIFACE}
+ip -l 5 -6 addr flush scope global dev ${TUNIFACE}
+
+ip -6 route del default dev ${TUNIFACE}
+ip link set down dev ${TUNIFACE}
 ip link del ${TUNIFACE}
 
 set +x
